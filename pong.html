@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Pong Game</title>
+  <style>
+    body {
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background: #111;
+      display: block;
+      border: 3px solid #fff;
+      box-shadow: 0 0 16px #000;
+    }
+    #scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 2em;
+      font-family: monospace;
+      letter-spacing: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">0 : 0</div>
+  <canvas id="gameCanvas" width="700" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreboard = document.getElementById('scoreboard');
+
+    // Game settings
+    const paddleWidth = 10, paddleHeight = 80;
+    const ballSize = 12;
+    const playerX = 20, computerX = canvas.width - 20 - paddleWidth;
+    let playerY = canvas.height / 2 - paddleHeight / 2;
+    let computerY = canvas.height / 2 - paddleHeight / 2;
+    let ballX = canvas.width / 2 - ballSize / 2;
+    let ballY = canvas.height / 2 - ballSize / 2;
+    let ballSpeedX = 4 * (Math.random() > 0.5 ? 1 : -1);
+    let ballSpeedY = 3 * (Math.random() > 0.5 ? 1 : -1);
+    let playerScore = 0, computerScore = 0;
+
+    // Mouse control
+    canvas.addEventListener('mousemove', e => {
+      let rect = canvas.getBoundingClientRect();
+      let mouseY = e.clientY - rect.top;
+      playerY = mouseY - paddleHeight / 2;
+      playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
+    });
+
+    // Arrow key control
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') {
+        playerY -= 32;
+      } else if (e.key === 'ArrowDown') {
+        playerY += 32;
+      }
+      playerY = Math.max(0, Math.min(canvas.height - paddleHeight, playerY));
+    });
+
+    function resetBall() {
+      ballX = canvas.width / 2 - ballSize / 2;
+      ballY = canvas.height / 2 - ballSize / 2;
+      ballSpeedX = 4 * (Math.random() > 0.5 ? 1 : -1);
+      ballSpeedY = 3 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    function drawBall(x, y, size, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function draw() {
+      // Clear screen
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw paddles
+      drawRect(playerX, playerY, paddleWidth, paddleHeight, "#0f0");
+      drawRect(computerX, computerY, paddleWidth, paddleHeight, "#f00");
+
+      // Draw ball
+      drawBall(ballX, ballY, ballSize, "#fff");
+
+      // Draw center line
+      for (let i = 20; i < canvas.height; i += 40) {
+        drawRect(canvas.width/2 - 2, i, 4, 20, "#fff2");
+      }
+    }
+
+    function update() {
+      // Move ball
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      // Collision with top/bottom walls
+      if (ballY <= 0 || ballY + ballSize >= canvas.height) {
+        ballSpeedY *= -1;
+      }
+
+      // Collision with player paddle
+      if (
+        ballX <= playerX + paddleWidth &&
+        ballY + ballSize > playerY &&
+        ballY < playerY + paddleHeight
+      ) {
+        ballSpeedX *= -1.05;
+        ballX = playerX + paddleWidth;
+        // Add some randomness
+        ballSpeedY += (Math.random()-0.5)*2;
+      }
+
+      // Collision with computer paddle
+      if (
+        ballX + ballSize >= computerX &&
+        ballY + ballSize > computerY &&
+        ballY < computerY + paddleHeight
+      ) {
+        ballSpeedX *= -1.05;
+        ballX = computerX - ballSize;
+        // Add some randomness
+        ballSpeedY += (Math.random()-0.5)*2;
+      }
+
+      // Score update
+      if (ballX < 0) {
+        computerScore++;
+        scoreboard.textContent = `${playerScore} : ${computerScore}`;
+        resetBall();
+      }
+      if (ballX + ballSize > canvas.width) {
+        playerScore++;
+        scoreboard.textContent = `${playerScore} : ${computerScore}`;
+        resetBall();
+      }
+
+      // Computer AI (simple)
+      let targetY = ballY - paddleHeight/2 + ballSize/2;
+      computerY += ((targetY - computerY) * 0.12);
+      computerY = Math.max(0, Math.min(canvas.height - paddleHeight, computerY));
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    scoreboard.textContent = `${playerScore} : ${computerScore}`;
+    gameLoop();
+  </script>
+</body>
+</html>
